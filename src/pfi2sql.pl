@@ -6,7 +6,6 @@ use strict;
 use Text::CSV;
 use DBD::SQLite;
 use SQL::Interp;
-use DBIx::Simple;
 use Test::Simple;
 use List::MoreUtils qw{natatime};
 use Log::Log4perl qw(:easy);
@@ -25,7 +24,7 @@ my $csv_file = shift or die "No CVS filename given, exiting";
 my $output_file = shift or die "No SQLite output filename given, exiting";
 
 my @projects;
-my $db;
+my $dbh;
 
 Log::Log4perl->easy_init($ERROR);
 
@@ -175,19 +174,18 @@ Create the database & tables
 sub create_db {
         my $file = shift;
 
-        $db = DBIx::Simple->connect("dbi:SQLite:dbname=$file", "", "");
-        my $dbh = $db->dbh;
+        $dbh = DBI->connect("dbi:SQLite:dbname=$file", "", "");
 
-        $dbh->do('CREATE TABLE project (hmt_id INT, name VARCHAR(255), department INT, authority INT, sector INT, constituency INT, region INT, status VARCHAR(64),date_ojeu date, date_pref_bid date, date_fin_close date, date_cons_complete date, date_ops date, contract_years INT, off_balance_IFRS BOOL, off_balance_ESA95 BOOL, off_balance_GAAP BOOL, capital_value INT, spv INT)');
-        $dbh->do('CREATE TABLE department (id INT PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE authority (id INT PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE sector (id INT PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE constituency (id INT PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE region (id INT PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE payment (id INT PRIMARY KEY, proj_id INT, year INT, estimated INT)');
-        $dbh->do('CREATE TABLE company (id INT PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE equity (id INT PRIMARY KEY, proj_id INT, company_id, share INT, change_2011 BOOL)');
-        $dbh->do('CREATE TABLE spv (spv_id INT, name VARCHAR(255), address VARCHAR(255))');
+        $dbh->do('CREATE TABLE project (hmt_id INTEGER, name VARCHAR(255), department INTEGER, authority INTEGER, sector INTEGER, constituency INTEGER, region INTEGER, status VARCHAR(64),date_ojeu date, date_pref_bid date, date_fin_close date, date_cons_complete date, date_ops date, contract_years INTEGER, off_balance_IFRS BOOL, off_balance_ESA95 BOOL, off_balance_GAAP BOOL, capital_value INTEGER, spv INTEGER)');
+        $dbh->do('CREATE TABLE department (id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $dbh->do('CREATE TABLE authority (id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $dbh->do('CREATE TABLE sector (id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $dbh->do('CREATE TABLE constituency (id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $dbh->do('CREATE TABLE region (id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $dbh->do('CREATE TABLE payment (id INTEGER PRIMARY KEY, proj_id INTEGER, year INTEGER, estimated INTEGER)');
+        $dbh->do('CREATE TABLE company (id INTEGER PRIMARY KEY, name VARCHAR(255))');
+        $dbh->do('CREATE TABLE equity (id INTEGER PRIMARY KEY, proj_id INTEGER, company_id, share INTEGER, change_2011 BOOL)');
+        $dbh->do('CREATE TABLE spv (spv_id INTEGER, name VARCHAR(255), address VARCHAR(255))');
 
 }
 
@@ -199,22 +197,24 @@ Fill the database tables with information from the PFI spreadsheet
 
 sub populate_db {
 
-        my $dbh = $db->dbh;
-
         # Extract unique departments
         my %departments = %{{ map { $_->[2] => 1 } @projects}};
 
-        my $sth = $dbh->prepare('INSERT INTO department (name) VALUES (?)');
+        $dbh->begin_work();
+        my $sth = $dbh->prepare_cached('INSERT INTO department (id, name) VALUES (NULL, ?)');
+
         for my $dept ( keys %departments ) {
             $sth->execute($dept);
-            DEBUG "Dept: $dept";
             $departments{$dept} = $dbh->last_insert_id(undef, undef, undef, undef);
+            ERROR "Dept: $dept ($departments{$dept})";
         }
+        $dbh->commit();
 
         # Extract unique sector 
         my %sectors = %{{ map { $_->[4] => 1 } @projects}};
 
-        $sth = $dbh->prepare('INSERT INTO sector (name) VALUES (?)');
+        $sth = $dbh->prepare_cached('INSERT INTO sector (name) VALUES (?)');
+
         for my $sector ( keys %sectors ) {
             $sth->execute($sector);
             DEBUG "Sector: $sector";
@@ -224,7 +224,8 @@ sub populate_db {
         # Extract unique regions 
         my %regions = %{{ map { $_->[6] => 1 } @projects}};
 
-        $sth = $dbh->prepare('INSERT INTO region (name) VALUES (?)');
+        $sth = $dbh->prepare_cached('INSERT INTO region (name) VALUES (?)');
+
         for my $region ( keys %regions ) {
             $sth->execute($region);
             DEBUG "Region: $region";
@@ -234,7 +235,8 @@ sub populate_db {
         # Extract unique procuring authority
         my %authorities = %{{ map { $_->[3] => 1 } @projects}};
 
-        $sth = $dbh->prepare('INSERT INTO authority (name) VALUES (?)');
+        $sth = $dbh->prepare_cached('INSERT INTO authority (name) VALUES (?)');
+
         for my $authority ( keys %authorities ) {
             DEBUG "Authority: $authority";
             $sth->execute($authority);
@@ -244,7 +246,8 @@ sub populate_db {
         # Extract unique constituency
         my %constituencies = %{{ map { $_->[5] => 1 } @projects}};
 
-        $sth = $dbh->prepare('INSERT INTO constituency (name) VALUES (?)');
+        $sth = $dbh->prepare_cached('INSERT INTO constituency (name) VALUES (?)');
+
         for my $constituency ( keys %constituencies ) {
             $sth->execute($constituency);
             DEBUG "Constituency: $constituency";
@@ -254,20 +257,22 @@ sub populate_db {
         # Extract unique SPV name
         my %spvs = %{{ map { $_->[104] => [ $_->[105], $_->[106] ] }@projects}};
 
-        $sth = $dbh->prepare('INSERT INTO spv (spv_id, name, address) VALUES (?,?,?)');
+        $sth = $dbh->prepare_cached('INSERT INTO spv (spv_id, name, address) VALUES (?,?,?)');
         for my $spv ( keys %spvs ) {
             $sth->execute($spvs{$spv}->[0], $spv, $spvs{$spv}->[1]);
             DEBUG "SPV: $spv";
         }
 
-        $sth = $dbh->prepare('INSERT INTO payment VALUES (?, ?, ?, ?)');
+        $sth = $dbh->prepare_cached('INSERT INTO payment VALUES (?, ?, ?, ?)');
 
         my %companies = ();
 
         DEBUG "Inserting projects";
 
+        my $sth2 = $dbh->prepare_cached('INSERT INTO project VALUES (?, ?, ?, ?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
         for my $row (@projects) {
-                my($sql, @bind) = $db->query('INSERT INTO project VALUES (??)', $row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, @$row[7..17], $row->[105]);
+                $sth2->execute($row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, @$row[7..17], $row->[105]);
 
                 my $payment_year = 1992;
                 my $payment_total = 0;
@@ -284,7 +289,7 @@ sub populate_db {
 
                 DEBUG "Inserting payments";
 
-                my $sth2 = $dbh->prepare('INSERT INTO equity VALUES (?, ?, ?, ?, ?)');
+                my $sth2 = $dbh->prepare_cached('INSERT INTO equity VALUES (?, ?, ?, ?, ?)');
                 my @equity = @$row[86..103];
 
                 my $it = natatime 3, @equity;
@@ -328,9 +333,11 @@ sub populate_db {
 #$db = DBIx::Simple->connect("dbi:SQLite:dbname=pfi_projects.db", "", "");
 
 #create_db("pfi_projects.db");
-create_db($csv_file);
+create_db($output_file);
 
 #parse_pfi("pfi.csv");
-parse_pfi($output_file);
+parse_pfi($csv_file);
+
+
 
 populate_db();
