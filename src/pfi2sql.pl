@@ -12,6 +12,15 @@ use List::MoreUtils qw{natatime};
 use Log::Log4perl qw(:easy);
 #use GetOpt::Long;
 
+
+=encoding utf8
+
+=head1 PFI2CVS
+
+Script to convert Private Finance Initative Excel spreadsheet from data.gov.uk into SQLite data for ease of use
+
+=cut
+
 my $csv_file = shift or die "No CVS filename given, exiting"; 
 my $output_file = shift or die "No SQLite output filename given, exiting";
 
@@ -20,9 +29,11 @@ my $db;
 
 Log::Log4perl->easy_init($ERROR);
 
-=item parse_pfi
+=head2 parse_pfi
 
-This function parses the PFI CVS file (from Excel). The file format is
+This function parses the PFI CVS file (from Excel). The row format is:
+
+=begin text
 
 0 Unique HMT Project ID
 1 Project Name
@@ -132,6 +143,14 @@ This function parses the PFI CVS file (from Excel). The file format is
 105 SPV company number
 106 SPV address
 
+=end text
+
+=cut
+
+=head2 parse_pfi
+
+Parse the PFI data in a CSV file
+
 =cut
 
 sub parse_pfi {
@@ -146,6 +165,12 @@ sub parse_pfi {
        close($fh);
     
 };
+
+=head2 create_db
+
+Create the database & tables
+
+=cut
 
 sub create_db {
         my $file = shift;
@@ -165,6 +190,12 @@ sub create_db {
         $dbh->do('CREATE TABLE spv (spv_id INT, name VARCHAR(255), address VARCHAR(255))');
 
 }
+
+=head2 populate_db
+
+Fill the database tables with information from the PFI spreadsheet
+
+=cut
 
 sub populate_db {
 
