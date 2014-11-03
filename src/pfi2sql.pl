@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 
 use Modern::Perl '2014';
-
 use Text::CSV;
 use DBD::SQLite;
 use SQL::Interp;
 use Test::Simple;
+use Scalar::Util qw(looks_like_number);
 use List::MoreUtils qw{natatime};
 use Log::Log4perl qw(:easy);
 #use GetOpt::Long;
@@ -25,7 +25,7 @@ my $output_file = shift or die "No SQLite output filename given, exiting";
 my @projects;
 my $dbh;
 
-Log::Log4perl->easy_init($ERROR);
+Log::Log4perl->easy_init($WARN);
 
 =head2 parse_pfi
 
@@ -188,6 +188,24 @@ sub create_db {
 
 }
 
+=head2 verify_date
+
+Helper function to check dates are in right format
+
+=cut
+
+sub verify_date {
+        my $csv_date = shift;
+
+        if($csv_date =~ /\d{4}-\d{2}-\d{2}/) {
+            return $csv_date;
+        }
+
+        WARN "Unknown date format - $csv_date - marking as null";
+
+        return undef; 
+}
+
 =head2 populate_db
 
 Fill the database tables with information from the PFI spreadsheet
@@ -271,7 +289,19 @@ sub populate_db {
         my $sth2 = $dbh->prepare_cached('INSERT INTO project VALUES (?, ?, ?, ?, ? , ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
         for my $row (@projects) {
-                $sth2->execute($row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, @$row[7..17], $row->[105]);
+                # Cleanup dates - if not in valid YYYY-MM-DD format drop
+                my $date_ojeu = verify_date($row->[8]);
+                my $date_pref_bid = verify_date($row->[9]);
+                my $date_fin_close = verify_date($row->[10]);
+                my $date_cons_complete = verify_date($row->[11]);
+                my $date_ops = verify_date($row->[12]);
+                my $capital_value = undef;
+
+                if(looks_like_number($row->[105])) {
+                    $capital_value = $row->[105]
+                }
+
+                $sth2->execute($row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, $row->[7], $date_ojeu, $date_pref_bid, $date_fin_close, $date_cons_complete, $date_ops, @$row[13..17], $capital_value);
 
                 my $payment_year = 1992;
                 my $payment_total = 0;
@@ -279,9 +309,13 @@ sub populate_db {
                 $dbh->begin_work();
 
                 for my $payment (@$row[18..85]) {
-                    $sth->execute(undef, $row->[0], $payment_year, $payment);
+                    if(looks_like_number($payment)) {
+                      $sth->execute(undef, $row->[0], $payment_year, $payment);
+                      $payment_total += $payment;
+                    } else {
+                      WARN "Ignoring non-number ($payment) payment value";
+                    }
                     $payment_year++;
-                    $payment_total += $payment;
                 }
 
                 $dbh->commit();
