@@ -206,6 +206,20 @@ sub verify_date {
         return undef; 
 }
 
+sub verify_bool {
+        my $csv_bool = shift;
+
+        if(uc($csv_bool) eq "ON") {
+            return 1;
+        } elsif(uc($csv_bool) eq "OFF") {
+            return 0;
+        }
+
+        WARN "Unknown bool format - $csv_bool - marking as null";
+
+        return undef;
+}
+
 =head2 populate_db
 
 Fill the database tables with information from the PFI spreadsheet
@@ -277,6 +291,7 @@ sub populate_db {
         $sth = $dbh->prepare_cached('INSERT INTO spv (spv_id, name, address) VALUES (?,?,?)');
         for my $spv ( keys %spvs ) {
             $sth->execute($spvs{$spv}->[0], $spv, $spvs{$spv}->[1]);
+            $spvs{$spv} = $dbh->last_insert_id(undef, undef, undef, undef);
             DEBUG "SPV: $spv";
         }
 
@@ -295,13 +310,22 @@ sub populate_db {
                 my $date_fin_close = verify_date($row->[10]);
                 my $date_cons_complete = verify_date($row->[11]);
                 my $date_ops = verify_date($row->[12]);
+                my $contract_years = $row->[13]; # TODO Check is valid number
+                my $off_balance_IFRS = verify_bool($row->[14]);
+                my $off_balance_ESA95 = verify_bool($row->[15]);
+                my $off_balance_GAAP = verify_bool($row->[16]);
                 my $capital_value = undef;
+                my $spv = undef;
 
-                if(looks_like_number($row->[105])) {
-                    $capital_value = $row->[105]
+                if(looks_like_number($row->[17])) {
+                    $capital_value = $row->[17]
                 }
 
-                $sth2->execute($row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, $row->[7], $date_ojeu, $date_pref_bid, $date_fin_close, $date_cons_complete, $date_ops, @$row[13..17], $capital_value);
+                if($spvs{$row->[104]}) {
+                    $spv = $spvs{$row->[104]};
+                }
+
+                $sth2->execute($row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, $row->[7], $date_ojeu, $date_pref_bid, $date_fin_close, $date_cons_complete, $date_ops, $contract_years, $off_balance_IFRS, $off_balance_ESA95, $off_balance_GAAP, $capital_value, $spv);
 
                 my $payment_year = 1992;
                 my $payment_total = 0;
