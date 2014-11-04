@@ -1,0 +1,10 @@
+A collection of scripts to parse and display Private Finance Initiative data
+as made available by HM Treasury (via http://data.gov.uk/)
+
+Includes:
+
+	pfi2db.pl - Perl script to turn CSV data into SQLite file (or any other
+		    DB supported by DBI)
+
+	pfi-rest.py - Flask-Restless server providing REST API for querying
+		      the above data
