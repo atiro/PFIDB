@@ -184,7 +184,7 @@ sub create_db {
         $dbh->do('CREATE TABLE payment (id INTEGER PRIMARY KEY, proj_id INTEGER, year INTEGER, estimated INTEGER)');
         $dbh->do('CREATE TABLE company (id INTEGER PRIMARY KEY, name VARCHAR(255))');
         $dbh->do('CREATE TABLE equity (id INTEGER PRIMARY KEY, proj_id INTEGER, company_id INTEGER, share INTEGER, change_2011 BOOL)');
-        $dbh->do('CREATE TABLE spv (spv_id INTEGER, name VARCHAR(255), address VARCHAR(255))');
+        $dbh->do('CREATE TABLE spv (id INTEGER PRIMARY KEY, spv_id INTEGER, name VARCHAR(255), address VARCHAR(255))');
 
 }
 
