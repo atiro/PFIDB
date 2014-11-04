@@ -16,8 +16,21 @@ class Project(db.Model):
 
 	hmt_id = Column(Integer, primary_key=True)
 	name = Column(String)
-	department = Column(Integer, ForeignKey('department.id'))
-    	department_key = relationship("Department")
+	department_id = Column(Integer, ForeignKey('department.id'))
+    	department = relationship("Department")
+
+	authority_id = Column(Integer, ForeignKey('authority.id'))
+    	authority = relationship("Authority")
+
+	sector_id = Column(Integer, ForeignKey('sector.id'))
+    	sector = relationship("Sector")
+
+	constituency_id = Column(Integer, ForeignKey('constituency.id'))
+    	constituency = relationship("Constituency")
+
+	region_id = Column(Integer, ForeignKey('region.id'))
+    	region = relationship("Region")
+
 	status = Column(String)
 	date_ojeu = Column(Date)
 	date_pref_bid = Column(Date)
@@ -29,8 +42,8 @@ class Project(db.Model):
 	off_balance_ESA95 = Column(Boolean)
 	off_balance_GAAP = Column(Boolean)
 	capital_value = Column(Integer)
-	spv = Column(Integer, ForeignKey('spv.id'))
-	spv_key = relationship('SPV')
+	spv_id = Column(Integer, ForeignKey('spv.id'))
+	spv = relationship('SPV')
     	
 	def __repr__(self):
 		return "<Project(name='%s')>" % (self.name)
@@ -40,6 +53,7 @@ class Department(db.Model):
 
 	id = Column(Integer, primary_key=True)
 	name = Column(String)
+
 
 class Authority(db.Model):
 	__tablename__ = 'authority'
@@ -108,9 +122,14 @@ db.create_all()
 
 manager = flask.ext.restless.APIManager(app, flask_sqlalchemy_db=db)
 
-manager.create_api(Project, methods=['GET'])
+manager.create_api(Project, methods=['GET'], exclude_columns=['department_id', 'authority_id', 'sector_id', 'constituency_id', 'region_id', 'spv_id'])
 manager.create_api(Company, methods=['GET'])
 manager.create_api(Payment, methods=['GET'])
 manager.create_api(Region, methods=['GET'])
+manager.create_api(Sector, methods=['GET'])
+manager.create_api(Authority, methods=['GET'])
+manager.create_api(Constituency, methods=['GET'])
+manager.create_api(Equity, methods=['GET'])
+manager.create_api(SPV, methods=['GET'])
 
 app.run()

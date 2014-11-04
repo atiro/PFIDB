@@ -175,7 +175,7 @@ sub create_db {
 
         $dbh = DBI->connect("dbi:SQLite:dbname=$file", "", "");
 
-        $dbh->do('CREATE TABLE project (hmt_id INTEGER, name VARCHAR(255), department INTEGER, authority INTEGER, sector INTEGER, constituency INTEGER, region INTEGER, status VARCHAR(64),date_ojeu date, date_pref_bid date, date_fin_close date, date_cons_complete date, date_ops date, contract_years INTEGER, off_balance_IFRS BOOL, off_balance_ESA95 BOOL, off_balance_GAAP BOOL, capital_value INTEGER, spv INTEGER)');
+        $dbh->do('CREATE TABLE project (hmt_id INTEGER, name VARCHAR(255), department_id INTEGER, authority_id INTEGER, sector_id INTEGER, constituency_id INTEGER, region_id INTEGER, status VARCHAR(64), date_ojeu date, date_pref_bid date, date_fin_close date, date_cons_complete date, date_ops date, contract_years INTEGER, off_balance_IFRS BOOL, off_balance_ESA95 BOOL, off_balance_GAAP BOOL, capital_value INTEGER, spv_id INTEGER)');
         $dbh->do('CREATE TABLE department (id INTEGER PRIMARY KEY, name VARCHAR(255))');
         $dbh->do('CREATE TABLE authority (id INTEGER PRIMARY KEY, name VARCHAR(255))');
         $dbh->do('CREATE TABLE sector (id INTEGER PRIMARY KEY, name VARCHAR(255))');
