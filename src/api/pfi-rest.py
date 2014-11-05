@@ -124,7 +124,7 @@ manager = flask.ext.restless.APIManager(app, flask_sqlalchemy_db=db)
 
 manager.create_api(Project, methods=['GET'], exclude_columns=['department_id', 'authority_id', 'sector_id', 'constituency_id', 'region_id', 'spv_id'])
 manager.create_api(Company, methods=['GET'])
-manager.create_api(Payment, methods=['GET'])
+manager.create_api(Payment, methods=['GET'], exclude_columns=['proj_id'])
 manager.create_api(Region, methods=['GET'])
 manager.create_api(Sector, methods=['GET'])
 manager.create_api(Authority, methods=['GET'])
@@ -132,4 +132,6 @@ manager.create_api(Constituency, methods=['GET'])
 manager.create_api(Equity, methods=['GET'])
 manager.create_api(SPV, methods=['GET'])
 
-app.run()
+if __name__ == '__main__':
+	app.run()
+
