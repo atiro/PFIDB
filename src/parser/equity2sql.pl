@@ -80,7 +80,7 @@ sub create_db {
 
         $dbh = DBI->connect("dbi:SQLite:dbname=$file", "", "");
 
-        $dbh->do('CREATE TABLE equity_transaction (transaction_id INTEGER, hmt_id INTEGER, date_of_sale date, vendor_id INTEGER, name VARCHAR(255), num_ppp INTEGER, date_fin_close date, purchaser_id INTEGER, share_holding_sold REAL, price REAL, price_net_liabilities boolean, profit REAL, avg_time_sale_years REAL, avg_rate_return REAL, source1 VARCHAR(255), source2 VARCHAR(255), source3 VARCHAR(255))');
+        $dbh->do('CREATE TABLE equity_transaction (transaction_id INTEGER PRIMARY KEY, hmt_id INTEGER, date_of_sale date, vendor_id INTEGER, name VARCHAR(255), num_ppp INTEGER, date_fin_close date, purchaser_id INTEGER, share_holding_sold REAL, price REAL, price_net_liabilities boolean, profit REAL, avg_time_sale_years REAL, avg_rate_return REAL, source1 VARCHAR(255), source2 VARCHAR(255), source3 VARCHAR(255))');
 
 }
 
