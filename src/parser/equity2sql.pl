@@ -144,7 +144,13 @@ sub populate_db {
 
 		if($row->[3] =~ /Parc/) {
 			# Query db for HMP Parc Project
-			$hmt_id = 484
+			$hmt_id = 484;
+		} elsif($row->[3] =~ /Rye Hill/) {
+			$hmt_id = 486;
+		} elsif($row->[3] =~ /Altcourse/) {
+			$hmt_id = 478;
+		} elsif($row->[3] =~ /M40 Denham/) {
+			$hmt_id = 248;
 		}
 
                 if($companies{$row->[2]}) {
