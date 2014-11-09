@@ -1,10 +1,18 @@
-import sys,os
+import sys,site
+site.addsitedir('/var/www/pfi/bin/flask-env/lib/python2.7/site-packages')
 
-PFI_REST_ENV = '/var/www/pfi/bin/flask-env'
-
-activate_this = os.path.join(PFI_REST_ENV, 'bin', 'activate_this.py')
-execfile(activate_this, dict(__file__=activate_this))
+#activate_this = '/var/www/pfi/bin/flask-env/bin/activate_this.py'
+#execfile(activate_this, dict(__file__=activate_this))
 
 sys.path.insert(0, '/var/www/pfi/bin/api')
 
-from pfi-rest import app as application
+debug = open("/tmp/debug", 'w')
+
+debug.write("Sys path is" + ':'.join(sys.path))
+
+debug.close()
+
+from pfirest import app as application
+
+#print dir(application)
+

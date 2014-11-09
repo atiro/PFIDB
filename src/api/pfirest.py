@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, create_engine, ForeignKey, Date, Boolean
+import sys
+
+from sqlalchemy import Column, Integer, String, create_engine, ForeignKey, Date, Boolean, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, backref
 import flask
@@ -8,7 +10,8 @@ import flask.ext.restless
 #db.Model = declarative_base()
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pfi_projects.db'
+app.debug = True
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/www/pfi/data/pfi_projects.db'
 db = flask.ext.sqlalchemy.SQLAlchemy(app)
 
 class Project(db.Model):
@@ -16,6 +19,7 @@ class Project(db.Model):
 
 	hmt_id = Column(Integer, primary_key=True)
 	name = Column(String)
+	address = Column(String)
 	department_id = Column(Integer, ForeignKey('department.id'))
     	department = relationship("Department")
 
@@ -53,7 +57,6 @@ class Department(db.Model):
 
 	id = Column(Integer, primary_key=True)
 	name = Column(String)
-
 
 class Authority(db.Model):
 	__tablename__ = 'authority'
@@ -118,19 +121,45 @@ class Payment(db.Model):
 	def __repr__(self):
 		return "<Payment(proj_id='%s', year='%s', estimated='%s')>" % (self.proj_id, self.year, self.estimated)
 
+class Transaction(db.Model):
+	__tablename__ = 'equity_transaction'
+
+#	id = Column(Integer, primary_key=True)
+	transaction_id = Column(Integer, primary_key=True)
+	hmt_id = Column(Integer, ForeignKey('project.hmt_id'))
+	date_of_sale = Column(Date)
+	project = relationship("Project", backref=backref('transactions', order_by=date_of_sale))
+	vendor_id = Column(Integer, ForeignKey('company.id'))
+	vendor = relationship("Company")
+	name = Column(String)
+	num_ppp = Column(Integer)
+	date_fin_close = Column(Date)
+#	purchaser_id = Column(Integer, ForeignKey('company.id'))
+#	purchaser = relationship("Company")
+	share_holding_sold = Column(Float)
+	price = Column(Float)
+	price_net_liabilities = Column(Boolean)
+	profit = Column(Float)
+	avg_time_sale_years = Column(Float)
+	avg_rate_return = Column(Float)
+	source1 = Column(String)
+	source2 = Column(String)
+	source3 = Column(String)
+	
 db.create_all()
 
 manager = flask.ext.restless.APIManager(app, flask_sqlalchemy_db=db)
 
-manager.create_api(Project, methods=['GET'], exclude_columns=['department_id', 'authority_id', 'sector_id', 'constituency_id', 'region_id', 'spv_id'])
-manager.create_api(Company, methods=['GET'])
-manager.create_api(Payment, methods=['GET'], exclude_columns=['proj_id'])
-manager.create_api(Region, methods=['GET'])
-manager.create_api(Sector, methods=['GET'])
-manager.create_api(Authority, methods=['GET'])
-manager.create_api(Constituency, methods=['GET'])
-manager.create_api(Equity, methods=['GET'])
-manager.create_api(SPV, methods=['GET'])
+manager.create_api(Project, methods=['GET'], exclude_columns=['department_id', 'authority_id', 'sector_id', 'constituency_id', 'region_id', 'spv_id'], url_prefix='/v1', max_results_per_page=800, results_per_page=800)
+manager.create_api(Company, methods=['GET'], url_prefix='/v1', results_per_page=1500, max_results_per_page=1500)
+manager.create_api(Payment, methods=['GET'], exclude_columns=['proj_id'], url_prefix='/v1')
+manager.create_api(Region, methods=['GET'], url_prefix='/v1')
+manager.create_api(Sector, methods=['GET'], url_prefix='/v1')
+manager.create_api(Authority, methods=['GET'], url_prefix='/v1')
+manager.create_api(Constituency, methods=['GET'], url_prefix='/v1')
+manager.create_api(Equity, methods=['GET'], url_prefix='/v1')
+manager.create_api(SPV, methods=['GET'], url_prefix='/v1')
+manager.create_api(Transaction, methods=['GET'], exclude_columns=['vendor_id', 'purchaser_id', 'hmt_id'], url_prefix='/v1', results_per_page=500)
 
 if __name__ == '__main__':
 	app.run()
