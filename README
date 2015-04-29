@@ -21,7 +21,7 @@ Install cpan modules:
 
 Run csv -> sqlite db script
 
-`/usr/local/Cellar/perl/5.20.1/bin/perl ./src/parser/pfi2sql.pl data/converted/current_projects_as_at_31_March_2014.csv ./pfi2014.db`
+`/usr/local/Cellar/perl/5.20.1/bin/perl ./src/parser/pfi2sql2014.pl data/converted/current_projects_as_at_31_March_2014.csv ./pfi2014.db`
 
 Run sqlite db -> json script
 
