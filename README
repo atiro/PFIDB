@@ -8,3 +8,21 @@ Includes:
 
 	pfi-rest.py - Flask-Restless server providing REST API for querying
 		      the above data
+
+## Commands for 2014 data
+
+Install a modern perl (on a Mac)
+
+`brew install perl`
+
+Install cpan modules:
+
+`/usr/local/Cellar/perl/5.20.1/bin/cpan Modern/Perl.pm Text/CSV.pm DBD/SQLite.pm SQL/Interp.pm Test/Simple.pm Scalar/Util.pm List/MoreUtils.pm Log/Log4perl.pm JSON.pm`
+
+Run csv -> sqlite db script
+
+`/usr/local/Cellar/perl/5.20.1/bin/perl ./src/parser/pfi2sql.pl data/converted/current_projects_as_at_31_March_2014.csv ./pfi2014.db`
+
+Run sqlite db -> json script
+
+`/usr/local/Cellar/perl/5.20.1/bin/perl ./src/sql2json.pl ./pfi2014.db projects.json`
