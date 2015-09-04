@@ -122,18 +122,18 @@ This function parses the PFI CVS file (from Excel). The row format is:
 86 Equity holder 1: Name
 87 Equity holder 1: Equity share (%)
 88 Equity holder 2: Name
-90 Equity holder 2: Equity share (%)
-91 Equity holder 3: Name
-93 Equity holder 3: Equity share (%)
-94 Equity holder 4: Name
-96 Equity holder 4: Equity share (%)
-97 Equity holder 5: Name
-99 Equity holder 5: Equity share (%)
-100 Equity holder 6: Name
-102 Equity holder 6: Equity share (%)
-103 SPV name
-104 SPV company number
-105 SPV address
+89 Equity holder 2: Equity share (%)
+90 Equity holder 3: Name
+91 Equity holder 3: Equity share (%)
+92 Equity holder 4: Name
+93 Equity holder 4: Equity share (%)
+94 Equity holder 5: Name
+95 Equity holder 5: Equity share (%)
+96 Equity holder 6: Name
+97 Equity holder 6: Equity share (%)
+98 SPV name
+99 SPV company number
+100 SPV address
 
 =end text
 
@@ -177,7 +177,7 @@ sub create_db {
         $dbh->do('CREATE TABLE region (id INTEGER PRIMARY KEY, name VARCHAR(255))');
         $dbh->do('CREATE TABLE payment (id INTEGER PRIMARY KEY, proj_id INTEGER, year INTEGER, estimated INTEGER)');
         $dbh->do('CREATE TABLE company (id INTEGER PRIMARY KEY, name VARCHAR(255))');
-        $dbh->do('CREATE TABLE equity (id INTEGER PRIMARY KEY, proj_id INTEGER, company_id INTEGER, share INTEGER, change_2011 BOOL)');
+        $dbh->do('CREATE TABLE equity (id INTEGER PRIMARY KEY, proj_id INTEGER, company_id INTEGER, share INTEGER)');
         $dbh->do('CREATE TABLE spv (id INTEGER PRIMARY KEY, spv_id INTEGER, name VARCHAR(255), address VARCHAR(255))');
 
 }
@@ -280,7 +280,7 @@ sub populate_db {
         }
 
         # Extract unique SPV name
-        my %spvs = %{{ map { $_->[104] => [ $_->[105], $_->[106] ] }@projects}};
+        my %spvs = %{{ map { $_->[98] => [ $_->[99], $_->[100] ] }@projects}};
 
         $sth = $dbh->prepare_cached('INSERT INTO spv (spv_id, name, address) VALUES (?,?,?)');
         for my $spv ( keys %spvs ) {
@@ -315,8 +315,8 @@ sub populate_db {
                     $capital_value = $row->[17]
                 }
 
-                if($spvs{$row->[104]}) {
-                    $spv = $spvs{$row->[104]};
+                if($spvs{$row->[98]}) {
+                    $spv = $spvs{$row->[98]};
                 }
 
                 $sth2->execute($row->[0], $row->[1], $departments{$row->[2]}, $authorities{$row->[3]}, $sectors{$row->[4]}, $constituencies{$row->[5]}, $regions{$row->[6]}, $row->[7], $date_ojeu, $date_pref_bid, $date_fin_close, $date_cons_complete, $date_ops, $contract_years, $off_balance_IFRS, $off_balance_ESA95, $off_balance_GAAP, $capital_value, $spv);
@@ -340,24 +340,15 @@ sub populate_db {
 
                 DEBUG "Inserting payments";
 
-                my $sth2 = $dbh->prepare_cached('INSERT INTO equity VALUES (?, ?, ?, ?, ?)');
-                my @equity = @$row[86..103];
+                my $sth2 = $dbh->prepare_cached('INSERT INTO equity VALUES (?, ?, ?, ?)');
+                my @equity = @$row[86..97];
 
-                my $it = natatime 3, @equity;
+                my $it = natatime 2, @equity;
 
                 $dbh->begin_work();
 
                 while (my @vals = $it->()) {
-                        my $change;
                         my $company_id;
-
-                        if($vals[2] eq "YES") {
-                            $change = 1;
-                        } elsif($vals[2] eq "NO") {
-                            $change = 0;
-                        } else {
-                            next;
-                        }
 
                         if($companies{$vals[0]}) {
                             $company_id = $companies{$vals[0]};
@@ -371,7 +362,7 @@ sub populate_db {
                         }
 
                         $sth2->execute(undef, $row->[0], $company_id, 
-                                                         $vals[1], $change); 
+                                                         $vals[1]); 
                 }
 
                 $dbh->commit();
