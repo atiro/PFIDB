@@ -1,4 +1,7 @@
 import csv
+import dateutil
+from math import floor
+
 from elasticsearch_dsl import DocType, String, Date, Nested, Boolean, Integer, Double
 from elasticsearch_dsl.connections import connections
 
@@ -15,7 +18,9 @@ connections.create_connection(hosts=
 
 class Project(DocType):
     hmt_id = Integer()
-    project_name = String()
+    project_name = String(
+            fields={'raw': String(index='not_analyzed')}
+            )
 
     department = String(index='not_analyzed')
     procuring_auth = String(index='not_analyzed')
@@ -70,7 +75,7 @@ class Project(DocType):
         project = Project(
             meta={'id': data[0]},
             hmt_id=data[0], 
-            title=data[1])
+            project_name=data[1])
 
         project.meta.id = data[0]
 
@@ -81,13 +86,38 @@ class Project(DocType):
         project.region = data[6]
         project.project_status = data[7]
 
-        project.date_ojeu = data[8]
-        project.date_pref_bid = data[9]
-        project.date_fin_close = data[10]
-        project.date_cons_complete = data[11]
-        project.date_operational = data[12]
+        try:
+            parse(data[8])
+            project.date_ojeu = data[8]
+        except:
+            project.date_ojeu = None
 
-        project.contract_years = data[13]
+        try:
+            parse(data[9])
+            project.date_pref_bid = data[9]
+        except:
+            project.date_pref_bid = None
+
+        try:
+            parse(data[10])
+            project.date_fin_close = data[10]
+        except:
+            project.date_fin_close = None
+
+        try:
+            parse(data[11])
+            project.date_cons_complete = data[11]
+        except:
+            project.date_cons_complete = None
+
+        try:
+            parse(data[12])
+            project.date_operational = data[12]
+        except:
+            project.date_operational = None
+
+        # TODO - note if conversion
+        project.contract_years = floor(float(data[13]))
 
         if data[14].upper() == "OFF":
             project.off_balance_IFRS = False
@@ -126,10 +156,19 @@ class Project(DocType):
                 )
 
         for i in range(0, 12, 2):
-            project.equity_holders.append(
+            try:
+                float(data[86+i+1])
+                project.equity_holders.append(
                 {
                     'name': data[86+i],
                     'share': data[86+i+1]
+                    }
+                )
+            except:
+                project.equity_holders.append(
+                {
+                    'name': data[86+i],
+                    'share': 0
                     }
                 )
 
@@ -149,4 +188,4 @@ def parse_pfi(filename=None):
 
 Project.init()
 
-parse_pfi("test.csv")
+parse_pfi("projects-2014.csv")
